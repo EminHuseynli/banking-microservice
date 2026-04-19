@@ -44,7 +44,7 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
-    // Bağlantı hatası, timeout, vs. — account-service erişilemiyor
+    // Connection error, timeout, etc. — account-service unreachable
     @ExceptionHandler(FeignException.class)
     public ResponseEntity<Map<String, Object>> handleFeign(FeignException ex) {
         return buildResponse(HttpStatus.SERVICE_UNAVAILABLE,

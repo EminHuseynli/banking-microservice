@@ -1,31 +1,233 @@
 services:
-  db:
+
+  # ============================================================
+  # INFRASTRUCTURE
+  # ============================================================
+
+  user-db:
     image: postgres:17
     environment:
-      POSTGRES_DB: ${DB_NAME:-banking_db}
+      POSTGRES_DB: user_db
       POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-1234}
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - user_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  app:
-    build: .
-    ports:
-      - "8080:8080"
-    depends_on:
-      - db
+  account-db:
+    image: postgres:17
     environment:
-      DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-banking_db}
+      POSTGRES_DB: account_db
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-1234}
+    ports:
+      - "5433:5432"
+    volumes:
+      - account_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  transaction-db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: transaction_db
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-1234}
+    ports:
+      - "5434:5432"
+    volumes:
+      - transaction_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  notification-db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-1234}
+    ports:
+      - "5435:5432"
+    volumes:
+      - notification_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # Management UI (guest/guest)
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASS:-guest}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ============================================================
+  # LOAD BALANCER — Blue-Green switch
+  # Blue (active):  ./scripts/switch-blue-green.sh blue
+  # Green (new):    ./scripts/switch-blue-green.sh green
+  # ============================================================
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/ui:/usr/share/nginx/html:ro
+    depends_on:
+      - api-gateway-blue
+    restart: unless-stopped
+
+  # ============================================================
+  # BLUE STACK — microservices (active once migration is complete)
+  # ============================================================
+
+  api-gateway-blue:
+    build:
+      context: services
+      dockerfile: api-gateway/Dockerfile
+    image: api-gateway:blue
+    ports:
+      - "8080:8080"   # direct access for debugging; production traffic goes through nginx:80
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-dGhpcyBpcyBhIHZlcnkgbG9uZyBhbmQgc2VjdXJlIHNlY3JldCBrZXkgZm9yIGp3dA==}
+      USER_SERVICE_URL: ${USER_SERVICE_URL:-http://user-service-blue:8081}
+      ACCOUNT_SERVICE_URL: ${ACCOUNT_SERVICE_URL:-http://account-service-blue:8082}
+      TRANSACTION_SERVICE_URL: ${TRANSACTION_SERVICE_URL:-http://transaction-service-blue:8083}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-http://notification-service-blue:8084}
+    depends_on:
+      user-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  user-service-blue:
+    build:
+      context: services
+      dockerfile: user-service/Dockerfile
+    image: user-service:blue
+    ports:
+      - "8081:8081"
+    environment:
+      DB_URL: jdbc:postgresql://user-db:5432/user_db
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-1234}
       JWT_SECRET: ${JWT_SECRET:-dGhpcyBpcyBhIHZlcnkgbG9uZyBhbmQgc2VjdXJlIHNlY3JldCBrZXkgZm9yIGp3dA==}
-    restart: on-failure
+    depends_on:
+      user-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  account-service-blue:
+    build:
+      context: services
+      dockerfile: account-service/Dockerfile
+    image: account-service:blue
+    ports:
+      - "8082:8082"
+    environment:
+      DB_URL: jdbc:postgresql://account-db:5432/account_db
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-1234}
+    depends_on:
+      account-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  transaction-service-blue:
+    build:
+      context: services
+      dockerfile: transaction-service/Dockerfile
+    image: transaction-service:blue
+    ports:
+      - "8083:8083"
+    environment:
+      DB_URL: jdbc:postgresql://transaction-db:5432/transaction_db
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-1234}
+      ACCOUNT_SERVICE_URL: http://account-service-blue:8082
+      RABBITMQ_HOST: rabbitmq
+      RABBIT_USER: ${RABBIT_USER:-guest}
+      RABBIT_PASS: ${RABBIT_PASS:-guest}
+    depends_on:
+      transaction-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  notification-service-blue:
+    build:
+      context: services
+      dockerfile: notification-service/Dockerfile
+    image: notification-service:blue
+    ports:
+      - "8084:8084"
+    environment:
+      DB_URL: jdbc:postgresql://notification-db:5432/notification_db
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-1234}
+      RABBITMQ_HOST: rabbitmq
+      RABBIT_USER: ${RABBIT_USER:-guest}
+      RABBIT_PASS: ${RABBIT_PASS:-guest}
+    depends_on:
+      notification-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ============================================================
+  # GREEN STACK — new version (deploy, test, then switch nginx)
+  # Build green: docker-compose build --build-arg VERSION=green api-gateway-green
+  # Activate:    ./scripts/switch-blue-green.sh green
+  # ============================================================
+
+  api-gateway-green:
+    build:
+      context: services
+      dockerfile: api-gateway/Dockerfile
+    image: api-gateway:green
+    ports:
+      - "8090:8080"   # separate port for pre-switch testing
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-dGhpcyBpcyBhIHZlcnkgbG9uZyBhbmQgc2VjdXJlIHNlY3JldCBrZXkgZm9yIGp3dA==}
+      USER_SERVICE_URL: ${USER_SERVICE_URL:-http://user-service-green:8081}
+      ACCOUNT_SERVICE_URL: ${ACCOUNT_SERVICE_URL:-http://account-service-green:8082}
+      TRANSACTION_SERVICE_URL: ${TRANSACTION_SERVICE_URL:-http://transaction-service-green:8083}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-http://notification-service-green:8084}
+    depends_on:
+      user-db:
+        condition: service_healthy
+    profiles:
+      - green   # only starts with: docker-compose --profile green up
+
+  # ============================================================
+  # MONITORING
+  # ============================================================
 
   node-exporter:
     image: prom/node-exporter:latest
-    container_name: node-exporter
     ports:
       - "9100:9100"
     pid: host
@@ -36,27 +238,35 @@ services:
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--collector.filesystem.ignored-mount-types=^(sys|proc|dev|host|etc)($$|/)'
 
   prometheus:
     image: prom/prometheus:latest
-    container_name: prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
     depends_on:
-      - app
+      - api-gateway-blue
 
   grafana:
     image: grafana/grafana:latest
-    container_name: grafana
     ports:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      # Load this dashboard automatically on Grafana startup
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/banking-overview.json
+    volumes:
+      - grafana_data:/var/lib/grafana                                                         # persisted across restarts
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro           # Prometheus datasource
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro             # Banking dashboard
     depends_on:
       - prometheus
 
 volumes:
-  postgres_data:
+  user_db_data:
+  account_db_data:
+  transaction_db_data:
+  notification_db_data:
+  grafana_data:          # Grafana settings are preserved across docker-compose down/up cycles

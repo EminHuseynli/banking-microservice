@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EminBank — Digital Banking</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- MODAL: New Account -->
+<div id="modal-new-account" class="modal-overlay hidden">
+  <div class="modal">
+    <h2 class="modal-title">Open New Account</h2>
+    <p class="modal-subtitle">Choose an account type to open instantly.</p>
+    <div class="form-group">
+      <label>Account Type</label>
+      <select id="new-account-type" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;outline:none;cursor:pointer;">
+        <option value="CHECKING">Checking Account</option>
+        <option value="SAVINGS">Savings Account</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-new-account')">Cancel</button>
+      <button class="btn btn-primary" id="btn-create-account" onclick="createAccount()">
+        <i class="fa-solid fa-plus"></i> Create Account
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     AUTH
+═══════════════════════════════════════════════════ -->
+<div id="auth-container">
+
+  <!-- LOGIN -->
+  <div id="screen-login" class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon"><i class="fa-solid fa-landmark"></i></div>
+      <div class="auth-logo-text">Emin<span>Bank</span></div>
+    </div>
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-subtitle">Sign in to your account</p>
+
+    <div id="login-error" class="error-msg hidden">
+      <i class="fa-solid fa-circle-exclamation"></i>
+      <span id="login-error-text"></span>
+    </div>
+
+    <div class="form-group">
+      <label>Email Address</label>
+      <div class="input-wrap">
+        <i class="fa-solid fa-envelope"></i>
+        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <div class="input-wrap">
+        <i class="fa-solid fa-lock"></i>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
+        <i class="fa-solid fa-eye icon-right" id="toggle-login-password"
+           onclick="togglePassword('login-password','toggle-login-password')"></i>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="btn-login" onclick="doLogin()">
+      <i class="fa-solid fa-right-to-bracket"></i> Sign In
+    </button>
+
+    <div class="auth-switch">
+      Don't have an account? <a onclick="showScreen('register')">Sign Up</a>
+    </div>
+  </div>
+
+  <!-- REGISTER -->
+  <div id="screen-register" class="auth-card hidden">
+    <div class="auth-logo">
+      <div class="auth-logo-icon"><i class="fa-solid fa-landmark"></i></div>
+      <div class="auth-logo-text">Emin<span>Bank</span></div>
+    </div>
+    <h1 class="auth-title">Create your account</h1>
+    <p class="auth-subtitle">Start banking in just a few steps</p>
+
+    <div id="register-error" class="error-msg hidden">
+      <i class="fa-solid fa-circle-exclamation"></i>
+      <span id="register-error-text"></span>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>First Name</label>
+        <div class="input-wrap">
+          <i class="fa-solid fa-user"></i>
+          <input type="text" id="reg-firstname" placeholder="John" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Last Name</label>
+        <div class="input-wrap">
+          <i class="fa-solid fa-user"></i>
+          <input type="text" id="reg-lastname" placeholder="Doe" />
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <div class="input-wrap">
+        <i class="fa-solid fa-envelope"></i>
+        <input type="email" id="reg-email" placeholder="you@example.com" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Password <span style="color:var(--text-muted);font-weight:400">(min. 6 characters)</span></label>
+      <div class="input-wrap">
+        <i class="fa-solid fa-lock"></i>
+        <input type="password" id="reg-password" placeholder="••••••••" />
+        <i class="fa-solid fa-eye icon-right" id="toggle-reg-password"
+           onclick="togglePassword('reg-password','toggle-reg-password')"></i>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="btn-register" onclick="doRegister()">
+      <i class="fa-solid fa-user-plus"></i> Sign Up
+    </button>
+
+    <div class="auth-switch">
+      Already have an account? <a onclick="showScreen('login')">Sign In</a>
+    </div>
+  </div>
+
+</div><!-- /auth-container -->
+
+<!-- ═══════════════════════════════════════════════════
+     APP
+═══════════════════════════════════════════════════ -->
+<div id="app-container" class="hidden">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon"><i class="fa-solid fa-landmark"></i></div>
+        <div class="sidebar-logo-text">Emin<span>Bank</span></div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main Menu</div>
+      <div class="nav-item active" data-tab="overview" onclick="switchTab('overview')">
+        <i class="fa-solid fa-table-columns"></i>
+        <span>Overview</span>
+      </div>
+      <div class="nav-item" data-tab="transactions" onclick="switchTab('transactions')">
+        <i class="fa-solid fa-arrow-right-arrow-left"></i>
+        <span>Transactions</span>
+      </div>
+      <div class="nav-item" data-tab="notifications" onclick="switchTab('notifications')">
+        <i class="fa-solid fa-bell"></i>
+        <span>Notifications</span>
+        <span class="nav-badge hidden" id="notif-badge">0</span>
+      </div>
+
+      <div class="nav-section-label" style="margin-top:16px;">Quick Links</div>
+      <div class="nav-item" onclick="window.open('/swagger-ui.html','_blank')">
+        <i class="fa-solid fa-code"></i>
+        <span>Swagger API</span>
+        <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:11px;margin-left:auto;opacity:.4;"></i>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebar-avatar">U</div>
+        <div class="user-info">
+          <div class="user-name" id="sidebar-name">User</div>
+          <div class="user-role" id="sidebar-role">USER</div>
+        </div>
+        <button class="logout-btn" title="Sign Out" onclick="doLogout()">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <div id="main-area">
+
+    <!-- ─── OVERVIEW TAB ─── -->
+    <section id="tab-overview" class="tab-content">
+      <div>
+        <div class="main-header" style="margin:-32px -32px 0;border-radius:0;">
+          <div>
+            <div class="page-title" id="overview-greeting">Overview</div>
+            <div class="page-subtitle" id="overview-date"></div>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-primary btn-sm" onclick="openModal('modal-new-account')">
+              <i class="fa-solid fa-plus"></i> New Account
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon blue"><i class="fa-solid fa-wallet"></i></div>
+          <div>
+            <div class="stat-value" id="stat-total-balance">$0.00</div>
+            <div class="stat-label">Total Balance</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green"><i class="fa-solid fa-credit-card"></i></div>
+          <div>
+            <div class="stat-value" id="stat-account-count">0</div>
+            <div class="stat-label">Active Accounts</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber"><i class="fa-solid fa-bell"></i></div>
+          <div>
+            <div class="stat-value" id="stat-notif-count">0</div>
+            <div class="stat-label">Unread Alerts</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accounts -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">My Accounts</div>
+            <div class="card-subtitle">All your bank accounts at a glance</div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="loadAccounts()">
+            <i class="fa-solid fa-rotate"></i> Refresh
+          </button>
+        </div>
+        <div id="accounts-container">
+          <div class="empty-state">
+            <i class="fa-solid fa-credit-card"></i>
+            <h3>No accounts yet</h3>
+            <p>Click "New Account" above to open your first account.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── TRANSACTIONS TAB ─── -->
+    <section id="tab-transactions" class="tab-content hidden">
+      <div class="main-header" style="margin:-32px -32px 0;border-radius:0;">
+        <div>
+          <div class="page-title">Transactions</div>
+          <div class="page-subtitle">Deposit, withdraw, or transfer funds</div>
+        </div>
+      </div>
+      <div style="height:8px;"></div>
+
+      <div class="card">
+        <div class="tx-tab-group">
+          <button class="tx-tab active" data-tx="deposit" onclick="switchTxTab('deposit')">
+            <i class="fa-solid fa-arrow-down"></i> Deposit
+          </button>
+          <button class="tx-tab" data-tx="withdraw" onclick="switchTxTab('withdraw')">
+            <i class="fa-solid fa-arrow-up"></i> Withdraw
+          </button>
+          <button class="tx-tab" data-tx="transfer" onclick="switchTxTab('transfer')">
+            <i class="fa-solid fa-arrow-right-arrow-left"></i> Transfer
+          </button>
+        </div>
+
+        <!-- Deposit -->
+        <div id="tx-deposit" class="tx-form">
+          <div class="form-group">
+            <label>Select Account</label>
+            <select id="deposit-account" style="width:100%;"></select>
+          </div>
+          <div class="form-group">
+            <label>Amount</label>
+            <div class="amount-input-wrap">
+              <span class="currency-symbol">$</span>
+              <input type="number" id="deposit-amount" placeholder="0.00" min="0.01" step="0.01" style="width:100%;" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Description <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+            <input type="text" id="deposit-desc" placeholder="Transaction note" class="no-icon" style="width:100%;" />
+          </div>
+          <button class="btn btn-success" id="btn-deposit" onclick="doDeposit()" style="width:auto;padding:13px 28px;">
+            <i class="fa-solid fa-arrow-down"></i> Deposit
+          </button>
+        </div>
+
+        <!-- Withdraw -->
+        <div id="tx-withdraw" class="tx-form hidden">
+          <div class="form-group">
+            <label>Select Account</label>
+            <select id="withdraw-account" style="width:100%;"></select>
+          </div>
+          <div class="form-group">
+            <label>Amount</label>
+            <div class="amount-input-wrap">
+              <span class="currency-symbol">$</span>
+              <input type="number" id="withdraw-amount" placeholder="0.00" min="0.01" step="0.01" style="width:100%;" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Description <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+            <input type="text" id="withdraw-desc" placeholder="Transaction note" class="no-icon" style="width:100%;" />
+          </div>
+          <button class="btn btn-danger" id="btn-withdraw" onclick="doWithdraw()" style="width:auto;padding:13px 28px;">
+            <i class="fa-solid fa-arrow-up"></i> Withdraw
+          </button>
+        </div>
+
+        <!-- Transfer -->
+        <div id="tx-transfer" class="tx-form hidden">
+          <div class="form-group">
+            <label>Source Account</label>
+            <select id="transfer-source" style="width:100%;"></select>
+          </div>
+          <div class="form-group">
+            <label>Target Account ID</label>
+            <input type="number" id="transfer-target" placeholder="Target account ID" class="no-icon" style="width:100%;" />
+          </div>
+          <div class="form-group">
+            <label>Amount</label>
+            <div class="amount-input-wrap">
+              <span class="currency-symbol">$</span>
+              <input type="number" id="transfer-amount" placeholder="0.00" min="0.01" step="0.01" style="width:100%;" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Description <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+            <input type="text" id="transfer-desc" placeholder="Transfer note" class="no-icon" style="width:100%;" />
+          </div>
+          <button class="btn btn-primary" id="btn-transfer" onclick="doTransfer()" style="width:auto;padding:13px 28px;">
+            <i class="fa-solid fa-arrow-right-arrow-left"></i> Transfer
+          </button>
+        </div>
+      </div>
+
+      <!-- Transaction History -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Transaction History</div>
+            <div class="card-subtitle">History for the selected account</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="history-account"
+              style="padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;"
+              onchange="loadHistory()"></select>
+            <button class="btn btn-ghost btn-sm" onclick="loadHistory()">
+              <i class="fa-solid fa-rotate"></i>
+            </button>
+          </div>
+        </div>
+        <div id="history-container">
+          <div class="empty-state" style="padding:32px;">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <h3>Transaction history</h3>
+            <p>Select an account to view its transaction history.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── NOTIFICATIONS TAB ─── -->
+    <section id="tab-notifications" class="tab-content hidden">
+      <div class="main-header" style="margin:-32px -32px 0;border-radius:0;">
+        <div>
+          <div class="page-title">Notifications</div>
+          <div class="page-subtitle" id="notif-header-subtitle">All your notifications</div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-outline btn-sm" onclick="loadNotifications()">
+            <i class="fa-solid fa-rotate"></i> Refresh
+          </button>
+        </div>
+      </div>
+      <div style="height:8px;"></div>
+
+      <div id="notifications-container">
+        <div class="empty-state">
+          <i class="fa-solid fa-bell-slash"></i>
+          <h3>No notifications</h3>
+          <p>You have no notifications at this time.</p>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /main-area -->
+</div><!-- /app-container -->
+
+<script src="app.js"></script>
+</body>
+</html>

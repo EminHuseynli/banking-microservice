@@ -1,0 +1,7 @@
+# Intentionally broken config for rollback demo
+# Spring Boot will fail to connect to DB on startup → crash → Swarm rollback
+spring:
+  datasource:
+    url: jdbc:postgresql://invalid-host-that-does-not-exist:5432/notification_db
+    username: postgres
+    password: 1234

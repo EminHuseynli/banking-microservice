@@ -1,0 +1,606 @@
+{
+  "title": "Banking Microservices — Centralized Monitoring",
+  "uid": "banking-overview",
+  "description": "Each service produces independent logs and metrics; this dashboard monitors all services from a single point. Thesis conceptual test: log centralization.",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "timezone": "browser",
+  "tags": ["banking", "microservices", "thesis"],
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "annotations": { "list": [] },
+  "templating": { "list": [] },
+  "panels": [
+
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "API Gateway",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "up{job=\"api-gateway\"}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "DOWN", "color": "red", "index": 0 },
+                "1": { "text": "UP", "color": "green", "index": 1 }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "User Service",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "up{job=\"user-service\"}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "DOWN", "color": "red", "index": 0 },
+                "1": { "text": "UP", "color": "green", "index": 1 }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Account Service",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "up{job=\"account-service\"}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "DOWN", "color": "red", "index": 0 },
+                "1": { "text": "UP", "color": "green", "index": 1 }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Transaction Service",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "up{job=\"transaction-service\"}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "DOWN", "color": "red", "index": 0 },
+                "1": { "text": "UP", "color": "green", "index": 1 }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Notification Service",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "up{job=\"notification-service\"}",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "DOWN", "color": "red", "index": 0 },
+                "1": { "text": "UP", "color": "green", "index": 1 }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Active Services",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "count(up{job=~\"api-gateway|user-service|account-service|transaction-service|notification-service\"} == 1)",
+          "refId": "A",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "orientation": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 3 },
+              { "color": "green", "value": 5 }
+            ]
+          },
+          "unit": "short",
+          "displayName": "/ 5 Services"
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "HTTP Request Rate — Per Service (req/s)",
+      "description": "Each service produces independent HTTP traffic. Grafana distinguishes them via the application tag — the metric equivalent of log centralization.",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (application) (rate(http_server_requests_seconds_count{application=~\".+\"}[1m]))",
+          "legendFormat": "{{application}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "max", "mean"]
+        },
+        "fillOpacity": 10,
+        "gradientMode": "opacity"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "showPoints": "never"
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "JVM Heap Memory — Per Service",
+      "description": "Each service runs its own JVM (proof of isolation). The monolith had a single heap; here 5 separate heaps are visible.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (application) (jvm_memory_used_bytes{area=\"heap\", application=~\".+\"})",
+          "legendFormat": "{{application}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "max"]
+        },
+        "fillOpacity": 10
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Transaction Counters (banking.transactions.total)",
+      "description": "Custom metric specific to transaction-service. Each service produces its own domain metrics — proof of the need for centralization.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "banking_transactions_total{type=\"deposit\",status=\"success\"}",
+          "legendFormat": "Deposit — Success",
+          "refId": "A",
+          "instant": true
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "banking_transactions_total{type=\"withdrawal\",status=\"success\"}",
+          "legendFormat": "Withdraw — Success",
+          "refId": "B",
+          "instant": true
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "banking_transactions_total{type=\"transfer\",status=\"success\"}",
+          "legendFormat": "Transfer — Success",
+          "refId": "C",
+          "instant": true
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(banking_transactions_total{status=\"failure\"})",
+          "legendFormat": "Failed (All)",
+          "refId": "D",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "auto",
+        "orientation": "horizontal"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Failed (All)" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }
+            ]
+          }
+        ]
+      }
+    },
+
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Circuit Breaker — Account Service Calls",
+      "description": "Resilience4j: successful, failed, not_permitted (OPEN state). When account-service is down, the 'not_permitted' line rises.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (kind) (rate(resilience4j_circuitbreaker_calls_seconds_count{name=\"accountService\"}[1m]))",
+          "legendFormat": "{{kind}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "max"]
+        },
+        "fillOpacity": 10
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "Circuit Breaker State",
+      "description": "1 = active state. Normally CLOSED=1, OPEN=0, HALF_OPEN=0.",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "resilience4j_circuitbreaker_state{name=\"accountService\",state=\"closed\"}",
+          "legendFormat": "CLOSED",
+          "refId": "A",
+          "instant": true
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "resilience4j_circuitbreaker_state{name=\"accountService\",state=\"open\"}",
+          "legendFormat": "OPEN",
+          "refId": "B",
+          "instant": true
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "resilience4j_circuitbreaker_state{name=\"accountService\",state=\"half_open\"}",
+          "legendFormat": "HALF-OPEN",
+          "refId": "C",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "name",
+        "orientation": "horizontal"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#808080", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byFrameRefID", "options": "A" },
+            "properties": [
+              { "id": "displayName", "value": "CLOSED" },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "#808080", "value": null },
+                    { "color": "green", "value": 1 }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byFrameRefID", "options": "B" },
+            "properties": [
+              { "id": "displayName", "value": "OPEN" },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "#808080", "value": null },
+                    { "color": "red", "value": 1 }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byFrameRefID", "options": "C" },
+            "properties": [
+              { "id": "displayName", "value": "HALF-OPEN" },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "#808080", "value": null },
+                    { "color": "orange", "value": 1 }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "HTTP Error Rate (4xx + 5xx) — Per Service",
+      "description": "Each service's error profile is independently observable. A spike in one service does not affect others.",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (application) (rate(http_server_requests_seconds_count{application=~\".+\",status=~\"4..|5..\"}[1m]))",
+          "legendFormat": "{{application}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "desc" },
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "fillOpacity": 20
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "showPoints": "never"
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      }
+    }
+
+  ]
+}

@@ -10,6 +10,8 @@ import com.banking.transactionservice.exception.ServiceUnavailableException;
 import com.banking.transactionservice.messaging.NotificationPublisher;
 import com.banking.transactionservice.transaction.dto.*;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +28,7 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final AccountClient accountClient;
     private final NotificationPublisher notificationPublisher;
+    private final MeterRegistry meterRegistry;
 
     @CircuitBreaker(name = ACCOUNT_SERVICE_CB, fallbackMethod = "depositFallback")
     public TransactionResponse deposit(DepositRequest request) {
@@ -44,6 +47,7 @@ public class TransactionService {
         notificationPublisher.publish(account.getUserId(),
                 request.getAmount() + "$ has been deposited into your account.", "TRANSACTION");
 
+        transactionCounter("deposit", "success").increment();
         return toResponse(saved);
     }
 
@@ -68,6 +72,7 @@ public class TransactionService {
         notificationPublisher.publish(account.getUserId(),
                 request.getAmount() + " $ has been withdrawn from your account.", "TRANSACTION");
 
+        transactionCounter("withdrawal", "success").increment();
         return toResponse(saved);
     }
 
@@ -98,6 +103,7 @@ public class TransactionService {
         notificationPublisher.publish(target.getUserId(),
                 request.getAmount() + " $ received ← " + source.getId(), "TRANSACTION");
 
+        transactionCounter("transfer", "success").increment();
         return toResponse(saved);
     }
 
@@ -113,30 +119,33 @@ public class TransactionService {
                 .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
-    // ---- Fallback methods (circuit OPEN veya network/5xx hatası) ----
-    // Not: 4xx hatalar (BadRequest, NotFound) ignore-exceptions ile circuit'e gitmez,
-    // doğrudan GlobalExceptionHandler'a düşer. Fallback sadece gerçek servis kesintisinde çalışır.
+    // ---- Fallback methods (circuit OPEN or network/5xx error) ----
+    // Note: 4xx errors (BadRequest, NotFound) are excluded via ignore-exceptions and bypass the circuit,
+    // falling directly to GlobalExceptionHandler. Fallback only triggers on real service outages.
 
     public TransactionResponse depositFallback(DepositRequest request, Throwable t) {
         rethrowIfBusinessError(t);
+        transactionCounter("deposit", "failure").increment();
         throw new ServiceUnavailableException(
                 "Account service is currently unavailable. Please try again later.");
     }
 
     public TransactionResponse withdrawFallback(WithdrawRequest request, Long userId, Throwable t) {
         rethrowIfBusinessError(t);
+        transactionCounter("withdrawal", "failure").increment();
         throw new ServiceUnavailableException(
                 "Account service is currently unavailable. Please try again later.");
     }
 
     public TransactionResponse transferFallback(TransferRequest request, Long userId, Throwable t) {
         rethrowIfBusinessError(t);
+        transactionCounter("transfer", "failure").increment();
         throw new ServiceUnavailableException(
                 "Account service is currently unavailable. Please try again later.");
     }
 
-    // 4xx hatalar iş mantığı hatasıdır, servis kesintisi değil.
-    // Fallback bunları yakalamamalı — GlobalExceptionHandler'a bırak.
+    // 4xx errors are business logic failures, not service outages.
+    // Fallback must not catch them — let GlobalExceptionHandler handle it.
     private void rethrowIfBusinessError(Throwable t) {
         if (t instanceof feign.FeignException.BadRequest ||
             t instanceof feign.FeignException.NotFound ||
@@ -147,6 +156,14 @@ public class TransactionService {
     }
 
     // ---- Private helpers ----
+
+    private Counter transactionCounter(String type, String status) {
+        return Counter.builder("banking.transactions.total")
+                .description("Total number of banking transactions")
+                .tag("type", type)
+                .tag("status", status)
+                .register(meterRegistry);
+    }
 
     private AccountInternalResponse getActiveAccount(Long accountId) {
         AccountInternalResponse account = accountClient.getAccount(accountId);

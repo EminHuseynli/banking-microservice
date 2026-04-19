@@ -1,0 +1,12 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus          # dashboard JSON files reference this UID
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: "5s"     # must match scrape_interval in prometheus.yml

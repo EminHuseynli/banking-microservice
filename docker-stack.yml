@@ -1,0 +1,464 @@
+# Docker Swarm Stack — Banking Microservices (Local)
+#
+# Deploy:   bash scripts/swarm-deploy.sh
+# Status:   docker stack services banking
+# Scale:    docker service scale banking_transaction-service=5
+# Update:   docker service update --image transaction-service:v2 banking_transaction-service
+# Rollback: docker service rollback banking_transaction-service
+# Teardown: docker stack rm banking
+#
+# Optional env vars (read from .env — defaults used when absent):
+#   TAG           — Image tag (default: blue)
+#   JWT_SECRET    — 256-bit base64 string
+#   DB_PASSWORD   — PostgreSQL password (default: 1234)
+#   RABBIT_USER   — RabbitMQ username (default: guest)
+#   RABBIT_PASS   — RabbitMQ password (default: guest)
+#   GF_ADMIN_PASS — Grafana admin password (default: admin)
+
+version: '3.8'
+
+networks:
+  banking-network:
+    external: true
+
+volumes:
+  user_db_data:
+    driver: local
+  account_db_data:
+    driver: local
+  transaction_db_data:
+    driver: local
+  notification_db_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+configs:
+  nginx_conf_v3:
+    file: ./nginx/nginx.blue.conf
+  prometheus_conf_v2:
+    file: ./prometheus.yml
+  banking_ui_html_v2:
+    file: ./nginx/ui/index.html
+  banking_ui_css:
+    file: ./nginx/ui/style.css
+  banking_ui_js_v2:
+    file: ./nginx/ui/app.js
+  # Grafana provisioning — Swarm has no bind mounts; Config objects are used instead.
+  # When updating a file, bump the config name (v1→v2) and update the service reference, then redeploy.
+  grafana_datasource_v1:
+    file: ./grafana/provisioning/datasources/prometheus.yml
+  grafana_dashboard_provider_v1:
+    file: ./grafana/provisioning/dashboards/provider.yml
+  grafana_dashboard_banking_v3:
+    file: ./grafana/provisioning/dashboards/banking-overview.json
+
+services:
+
+  # ============================================================
+  # INFRASTRUCTURE — Databases (Database per Service pattern)
+  # All pinned to the manager node to co-locate with persistent volumes
+  # ============================================================
+
+  user-db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: user_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "${DB_PASSWORD:-1234}"
+    volumes:
+      - user_db_data:/var/lib/postgresql/data
+    networks:
+      - banking-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  account-db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: account_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "${DB_PASSWORD:-1234}"
+    volumes:
+      - account_db_data:/var/lib/postgresql/data
+    networks:
+      - banking-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  transaction-db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: transaction_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "${DB_PASSWORD:-1234}"
+    volumes:
+      - transaction_db_data:/var/lib/postgresql/data
+    networks:
+      - banking-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  notification-db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "${DB_PASSWORD:-1234}"
+    volumes:
+      - notification_db_data:/var/lib/postgresql/data
+    networks:
+      - banking-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: "${RABBIT_USER:-guest}"
+      RABBITMQ_DEFAULT_PASS: "${RABBIT_PASS:-guest}"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "15672:15672"   # Management UI
+    networks:
+      - banking-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+        delay: 10s
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # ============================================================
+  # LOAD BALANCER
+  # ============================================================
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    configs:
+      - source: nginx_conf_v3
+        target: /etc/nginx/conf.d/default.conf
+      - source: banking_ui_html_v2
+        target: /usr/share/nginx/html/index.html
+      - source: banking_ui_css
+        target: /usr/share/nginx/html/style.css
+      - source: banking_ui_js_v2
+        target: /usr/share/nginx/html/app.js
+    networks:
+      - banking-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+      update_config:
+        parallelism: 1
+        delay: 5s
+        failure_action: rollback
+
+  # ============================================================
+  # MICROSERVICES
+  # replicas: 3 → Horizontal Scaling demo
+  # resources  → Vertical Scaling demo
+  # update_config order: start-first → Zero-downtime Rolling Update
+  # ============================================================
+
+  api-gateway:
+    image: api-gateway:${TAG:-blue}
+    ports:
+      - "8080:8080"
+    environment:
+      JWT_SECRET: "${JWT_SECRET:-dGhpcyBpcyBhIHZlcnkgbG9uZyBhbmQgc2VjdXJlIHNlY3JldCBrZXkgZm9yIGp3dA==}"
+      USER_SERVICE_URL: http://user-service:8081
+      ACCOUNT_SERVICE_URL: http://account-service:8082
+      TRANSACTION_SERVICE_URL: http://transaction-service:8083
+      NOTIFICATION_SERVICE_URL: http://notification-service:8084
+    networks:
+      - banking-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  user-service:
+    image: user-service:${TAG:-blue}
+    environment:
+      DB_URL: jdbc:postgresql://user-db:5432/user_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: "${DB_PASSWORD:-1234}"
+      JWT_SECRET: "${JWT_SECRET:-dGhpcyBpcyBhIHZlcnkgbG9uZyBhbmQgc2VjdXJlIHNlY3JldCBrZXkgZm9yIGp3dA==}"
+    networks:
+      - banking-network
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  account-service:
+    image: account-service:${TAG:-blue}
+    environment:
+      DB_URL: jdbc:postgresql://account-db:5432/account_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: "${DB_PASSWORD:-1234}"
+    networks:
+      - banking-network
+    deploy:
+      replicas: 3   # Most critical service — handles balance reads/writes
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  transaction-service:
+    image: transaction-service:${TAG:-blue}
+    environment:
+      DB_URL: jdbc:postgresql://transaction-db:5432/transaction_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: "${DB_PASSWORD:-1234}"
+      ACCOUNT_SERVICE_URL: http://account-service:8082
+      RABBITMQ_HOST: rabbitmq
+      RABBIT_USER: "${RABBIT_USER:-guest}"
+      RABBIT_PASS: "${RABBIT_PASS:-guest}"
+    networks:
+      - banking-network
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  notification-service:
+    image: notification-service:${TAG:-blue}
+    environment:
+      DB_URL: jdbc:postgresql://notification-db:5432/notification_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: "${DB_PASSWORD:-1234}"
+      RABBITMQ_HOST: rabbitmq
+      RABBIT_USER: "${RABBIT_USER:-guest}"
+      RABBIT_PASS: "${RABBIT_PASS:-guest}"
+    networks:
+      - banking-network
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # ============================================================
+  # MONITORING
+  # ============================================================
+
+  prometheus:
+    image: prom/prometheus:latest
+    configs:
+      - source: prometheus_conf_v2
+        target: /etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - banking-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "${GF_ADMIN_PASS:-admin}"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/provisioning/dashboards/banking-overview.json
+      GF_RENDERING_CONCURRENT_RENDER_LIMIT: "4"
+      GF_DATAPROXY_TIMEOUT: "30"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    configs:
+      - source: grafana_datasource_v1
+        target: /etc/grafana/provisioning/datasources/prometheus.yml
+        mode: 0444
+      - source: grafana_dashboard_provider_v1
+        target: /etc/grafana/provisioning/dashboards/provider.yml
+        mode: 0444
+      - source: grafana_dashboard_banking_v3
+        target: /etc/grafana/provisioning/dashboards/banking-overview.json
+        mode: 0444
+    networks:
+      - banking-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 512M

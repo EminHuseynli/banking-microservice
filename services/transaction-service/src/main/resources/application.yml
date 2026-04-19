@@ -32,33 +32,36 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, circuitbreakers, circuitbreakerevents
+        include: health, info, prometheus, circuitbreakers, circuitbreakerevents
   endpoint:
     health:
       show-details: always
   health:
     circuitbreakers:
       enabled: true
+  metrics:
+    tags:
+      application: transaction-service
 
 resilience4j:
   circuitbreaker:
     instances:
       accountService:
-        # Kaç çağrı üzerinden hesaplanacak (COUNT_BASED sliding window)
+        # Number of calls in the sliding window (COUNT_BASED)
         sliding-window-type: COUNT_BASED
         sliding-window-size: 10
-        # %50 hata oranı → CLOSED'dan OPEN'a geçer
+        # Circuit opens when failure rate exceeds 50%
         failure-rate-threshold: 50
-        # OPEN kaldıktan 10 saniye sonra HALF-OPEN'a geçer
+        # After 10s in OPEN state, transition to HALF-OPEN
         wait-duration-in-open-state: 10s
-        # HALF-OPEN'da kaç çağrı izin verilir (probe)
+        # Number of probe calls allowed in HALF-OPEN state
         permitted-number-of-calls-in-half-open-state: 3
-        # 2 saniyeden yavaş çağrı = slow call (yavaş çağrılar da sayılır)
+        # Calls slower than 2s are counted as slow calls
         slow-call-duration-threshold: 2s
         slow-call-rate-threshold: 50
-        # Actuator /health endpoint'inde görünür
+        # Expose circuit state on the Actuator /health endpoint
         register-health-indicator: true
-        # 4xx hatalar business logic hatası — servis failure değil, circuit'i tetiklememeli
+        # 4xx errors are business logic failures — should not trip the circuit
         ignore-exceptions:
           - feign.FeignException$BadRequest
           - feign.FeignException$NotFound
@@ -69,3 +72,5 @@ account-service:
 logging:
   level:
     com.banking.transactionservice: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [transaction-service] [%thread] %-5level %logger{36} - %msg%n"

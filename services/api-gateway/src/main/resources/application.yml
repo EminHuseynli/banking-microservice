@@ -69,10 +69,13 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, gateway
+        include: health, info, gateway, prometheus
   endpoint:
     health:
       show-details: always
+  metrics:
+    tags:
+      application: api-gateway
 
 springdoc:
   swagger-ui:
@@ -91,3 +94,5 @@ logging:
   level:
     com.banking.gateway: DEBUG
     org.springframework.cloud.gateway: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [api-gateway] [%thread] %-5level %logger{36} - %msg%n"

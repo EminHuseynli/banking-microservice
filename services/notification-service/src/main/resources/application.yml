@@ -28,11 +28,27 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info
+        include: health, info, prometheus
   endpoint:
     health:
       show-details: always
+  metrics:
+    tags:
+      application: notification-service
+
+info:
+  app:
+    version: "2.0.0"
+    environment: "green"
+    description: "Notification Service — Green Deployment"
+
+management:
+  info:
+    env:
+      enabled: true
 
 logging:
   level:
     com.banking.notificationservice: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [notification-service-v2] [%thread] %-5level %logger{36} - %msg%n"

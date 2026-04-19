@@ -2,11 +2,29 @@ global:
   scrape_interval: 5s
 
 scrape_configs:
-  - job_name: 'banking-monolith'
+  # Services are resolved by name on the Swarm overlay network.
+  # No stack-name prefix: use api-gateway:8080, not banking_api-gateway:8080
+  - job_name: 'api-gateway'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['app:8080']
+      - targets: ['api-gateway:8080']
 
-  - job_name: 'node-exporter'
+  - job_name: 'user-service'
+    metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['node-exporter:9100']
+      - targets: ['user-service:8081']
+
+  - job_name: 'account-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['account-service:8082']
+
+  - job_name: 'transaction-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['transaction-service:8083']
+
+  - job_name: 'notification-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['notification-service:8084']
